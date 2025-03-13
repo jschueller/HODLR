@@ -1,6 +1,22 @@
+cmake_minimum_required (VERSION 3.13)
+
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
+
 project (HODLRlib)
-cmake_minimum_required (VERSION 3.0)
+
+if (POLICY CMP0148)
+  cmake_policy(SET CMP0148 NEW)
+endif ()
+
+include (GNUInstallDirs)
+
+option(BUILD_SHARED_LIBS "shared/static libs" ON)
+
+# set RPATH, useful for python bindings
+set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+
 set (CMAKE_CXX_STANDARD 11)
+
 # Provide the input file that you want to solve for:
 # This can also be passed as a command line argument:
 if(NOT INPUT_FILE)
@@ -11,50 +27,27 @@ endif()
 if(NOT OUTPUT_EXECUTABLE)
     set (OUTPUT_EXECUTABLE "")
 endif()
-# Set this to: "float", "double", "complex32" and "complex64"
-set (DTYPE "double")
-# Change this accordingly to point to the Eigen root folder
-# By default, it will pick up the environment variable EIGEN_PATH
-set(EIGEN_PATH "$ENV{EIGEN_PATH}")
-
-################ FINDING MKL ####################
-
-# Checking for MKL:
-# Currently disabling MKL. Sometimes a linker error pops up
-# TODO: Look into this
-#if (DEFINED ENV{MKLROOT})
-#    add_compile_definitions(MKL_ENABLED)
-#    set (MKLROOT "$ENV{MKLROOT}")
-#    set (LDFLAGS "${LDFLAGS} -DMKL_ENABLED -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group")
-#    set (MKL_FLAGS "-DMKL_LP64 -DMKL_ENABLED -I${MKLROOT}/include")
-#endif ()
 
 ################ FINDING EIGEN ####################
-if(NOT EIGEN_PATH)
-    message ( FATAL_ERROR "Please point the environment variable EIGEN_PATH to the root directory of your Eigen3 installation.")
-endif()
+find_package(Eigen3 CONFIG REQUIRED)
+
+find_package(OpenMP)
 
 ################ SETTING DATATYPE TO USE:FLOAT, DOUBLE AND COMPLEX ####################
+# Set this to: "float", "double", "complex32" and "complex64"
+set (DTYPE "double" CACHE STRING "scalar type")
+
 if(DTYPE STREQUAL "float")
-    set(DTYPE_FLAG "-DUSE_FLOAT")
+    set(DTYPE_FLAG "USE_FLOAT")
 elseif(DTYPE STREQUAL "double")
-    set(DTYPE_FLAG "-DUSE_DOUBLE")
+    set(DTYPE_FLAG "USE_DOUBLE")
 elseif(DTYPE STREQUAL "complex32")
-    set(DTYPE_FLAG "-DUSE_COMPLEX32")
+    set(DTYPE_FLAG "USE_COMPLEX32")
 elseif(DTYPE STREQUAL "complex64")
-    set(DTYPE_FLAG "-DUSE_COMPLEX64")
+    set(DTYPE_FLAG "USE_COMPLEX64")
 else()
     message(FATAL_ERROR "Invalid Choice for Datatype. Exiting...")
 endif()
-
-################ COMPILERS: APPROPRIATELY USE INTEL OR GNU ####################
-
-# Toggle this to 1 when Intel Compilers are available:
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DTYPE_FLAG} ${MKL_FLAGS} --std=c++11 -O3 -ipo -qopenmp -xHost -funroll-loops -ffast-math -ffinite-math-only -g -liomp5 -lpthread -ldl")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DTYPE_FLAG} ${MKL_FLAGS} --std=c++11 -O3 -funroll-loops -ffast-math -ffinite-math-only -g -fopenmp -lpthread -ldl")
-endif ()
 
 # Flags for testing coverage information
 # Need by coveralls:
@@ -64,9 +57,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "${CMAKE_SHARED_LINKER_FLAGS} --coverage"
 
 ################ ADDING OF THE NECESSARY HEADER FOLDERS ####################
 # Adding folders which contain necessary header files:
-include_directories("${EIGEN_PATH}" 
-                    "include"
-                   )
+include_directories("include")
 
 ################ MENTIONING C++ FILES TO LINK WITH HEADERS + FILE TO BUILD ####################
 
@@ -80,6 +71,26 @@ set(HODLRlib_SRCS
     ${PROJECT_SOURCE_DIR}/src/KDTree.cpp
    )
 
+if (MSVC)
+  set_source_files_properties (${PROJECT_SOURCE_DIR}/src/LowRank.cpp PROPERTIES COMPILE_FLAGS "/bigobj")
+endif ()
+   
+add_library(HODLR ${HODLRlib_SRCS})
+set_target_properties(HODLR PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(HODLR PUBLIC ${DTYPE_FLAG})
+target_link_libraries(HODLR PUBLIC Eigen3::Eigen)
+if (OPENMP_FOUND)
+  target_compile_definitions(HODLR PUBLIC HODLR_HAVE_OPENMP)
+  target_link_libraries(HODLR PUBLIC OpenMP::OpenMP_CXX)
+endif ()
+
+install(TARGETS HODLR DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+file(GLOB HODLRlib_HDRS ${PROJECT_SOURCE_DIR}/include/*.hpp)
+install(FILES ${HODLRlib_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+enable_testing()
+
 if(NOT("${CMAKE_BUILD_TYPE}" STREQUAL "COVERAGE"))
     add_subdirectory(examples)
     add_subdirectory(test)
@@ -88,9 +99,19 @@ endif()
 if(INPUT_FILE)
   add_executable(${OUTPUT_EXECUTABLE}
                  ${INPUT_FILE}
-                 ${HODLRlib_SRCS}
                 )
+  target_link_libraries(${OUTPUT_EXECUTABLE} HODLR)
 endif()
+
+option(HODLR_PYTHON "Enable Python bindings" ON)
+if (HODLR_PYTHON)
+  add_subdirectory(python)
+endif ()
+
+option(HODLR_FORTRAN "Enable Fortran bindings" OFF)
+if (HODLR_FORTRAN)
+  add_subdirectory(fortran)
+endif ()
 
 ################ SUMMARY OF BUILD INFORMATION ################
 
@@ -103,7 +124,6 @@ message("Input File       : " ${INPUT_FILE})
 message("Data Type        : " ${DTYPE})
 message("CXX Compiler     : " ${CMAKE_CXX_COMPILER})
 message("CXX_FLAGS        : " ${CMAKE_CXX_FLAGS})
-message("Eigen dir        : " ${EIGEN_PATH})
-# message("MKL dir          : " ${MKLROOT})
+message("Eigen dir        : " ${EIGEN3_INCLUDE_DIR})
 message("Build dir        : " ${CMAKE_BINARY_DIR})
 message("")

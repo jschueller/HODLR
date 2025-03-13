@@ -7,9 +7,12 @@ foreach(TARGET
         example_conducting_sphere_plate
        )
 
-  add_executable(${TARGET} 
+  add_executable(${TARGET}
                  ${TARGET}.cpp
-                 ${HODLRlib_SRCS}
                 )
-
+  target_link_libraries(${TARGET} HODLR)
+  
+  add_test(NAME ${TARGET} COMMAND ${TARGET})
 endforeach()
+
+

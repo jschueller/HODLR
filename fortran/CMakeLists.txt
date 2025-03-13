@@ -1,6 +1,4 @@
-project (HODLRlib_fortran)
-cmake_minimum_required (VERSION 3.0)
-set (CMAKE_CXX_STANDARD 11)
+
 enable_language(Fortran)
 
 # Provide the input file that you want to solve for:
@@ -11,7 +9,7 @@ endif()
 # Here set the name for the output executable:
 # This can also be passed as a command line argument:
 if(NOT OUTPUT_EXECUTABLE)
-    set (OUTPUT_EXECUTABLE "example")
+    set (OUTPUT_EXECUTABLE "example_fortran")
 endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "TESTING")
@@ -19,37 +17,19 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "TESTING")
     set (OUTPUT_EXECUTABLE "test_HODLR")
 endif()
 
-set(EIGEN_PATH "$ENV{EIGEN_PATH}")
-set(HODLR_PATH "$ENV{HODLR_PATH}")
-
-set(DTYPE_FLAG "-DUSE_DOUBLE")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DTYPE_FLAG} --std=c++11 -O3 -funroll-loops -ffast-math -ffinite-math-only")
 set(CMAKE_Fortran_FLAGS "-lstdc++")
 
 ################ ADDING OF THE NECESSARY HEADER FOLDERS ####################
 # Adding folders which contain necessary header files:
-include_directories("${EIGEN_PATH}" 
-                    "${HODLR_PATH}/include"
-                    "${HODLR_PATH}/fortran/wrapper"
-                    "${HODLR_PATH}/fortran/example"
-                   )
-
-################ MENTIONING C++ FILES TO LINK WITH HEADERS + FILE TO BUILD ####################
-set(HODLRlib_SRCS
-    ${HODLR_PATH}/src/HODLR_Matrix.cpp
-    ${HODLR_PATH}/src/KDTree.cpp
-    ${HODLR_PATH}/src/LowRank.cpp
-    ${HODLR_PATH}/src/HODLR_Node.cpp
-    ${HODLR_PATH}/src/HODLR.cpp
-    ${HODLR_PATH}/src/HODLR_NonSPD.cpp
-    ${HODLR_PATH}/src/HODLR_SPD.cpp
-   )
+include_directories(wrapper example)
 
 add_executable(${OUTPUT_EXECUTABLE}
                ${INPUT_FILE}
-               ${HODLRlib_SRCS}
-               "${HODLR_PATH}/fortran/wrapper/fortran_wrapper.cpp"
-               "${HODLR_PATH}/fortran/wrapper/hodlr_mod.f90"
+               wrapper/fortran_wrapper.cpp
+               wrapper/hodlr_mod.f90
               )
+target_link_libraries(${OUTPUT_EXECUTABLE} HODLR)
 
 set_property(TARGET ${OUTPUT_EXECUTABLE} PROPERTY LINKER_LANGUAGE Fortran)
+
+add_test(NAME ${OUTPUT_EXECUTABLE} COMMAND ${OUTPUT_EXECUTABLE})

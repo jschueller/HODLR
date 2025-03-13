@@ -1,6 +1,6 @@
 #include "HODLR_Node.hpp"
 
-HODLR_Node::HODLR_Node(int level_number, int node_number, int local_number, 
+HODLR_Node::HODLR_Node(int level_number, int node_number, int /*local_number*/, 
                        int n_start, int n_size, double tolerance
                       ) 
 {

@@ -143,7 +143,7 @@ void LowRank::rookPiv(Mat& L, Mat& R, double tolerance_or_rank,
                     int max = 0;
                     int idx = 0;
 
-                    for(int i = 0; i < row_ind_sort.size() - 1; i++)
+                    for(unsigned int i = 0; i < row_ind_sort.size() - 1; i++)
                     {
                         row_ind_diff[i] = row_ind_sort[i+1] - row_ind_sort[i];
                         if(row_ind_diff[i] > max)
@@ -244,7 +244,7 @@ void LowRank::rookPiv(Mat& L, Mat& R, double tolerance_or_rank,
                     int max = 0;
                     int idx = 0;
 
-                    for(int i = 0; i < col_ind_sort.size() - 1; i++)
+                    for(unsigned int i = 0; i < col_ind_sort.size() - 1; i++)
                     {
                         col_ind_diff[i] = col_ind_sort[i+1] - col_ind_sort[i];
                         if(col_ind_diff[i] > max)
@@ -695,7 +695,6 @@ void LowRank::getFactorization(Mat& L,  Mat& R, double tolerance_or_rank,
 
     if(this->type.compare("rookPivoting") == 0)
     {
-        int computed_rank;
         rookPiv(L, R, tolerance_or_rank,
                 n_row_start, n_col_start, 
                 n_rows, n_cols
@@ -704,7 +703,6 @@ void LowRank::getFactorization(Mat& L,  Mat& R, double tolerance_or_rank,
 
     else if(this->type.compare("queenPivoting") == 0)
     {
-        int computed_rank;
         queenPiv(L, R, tolerance_or_rank,
                  n_row_start, n_col_start, 
                  n_rows, n_cols

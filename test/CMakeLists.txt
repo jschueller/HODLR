@@ -1,4 +1,4 @@
 add_executable(test_HODLR 
                test_HODLR.cpp
-               ${HODLRlib_SRCS}
               )
+target_link_libraries(test_HODLR HODLR)

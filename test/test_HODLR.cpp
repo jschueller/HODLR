@@ -39,7 +39,7 @@ public:
         {   
             dtype R2 = 0;
 
-            for(int k = 0; k < dim; k++) 
+            for(unsigned int k = 0; k < dim; k++) 
             {
                 R2 += (x(i,k) - x(j,k)) * (x(i,k) - x(j,k));
             }
@@ -120,6 +120,7 @@ void testHODLR(int N, int M, double tolerance, HODLR_Matrix* K, std::string lowr
     }
 
     dtype log_det_hodlr = T->logDeterminant();
+    (void)log_det_hodlr;
     assert(fabs(1 - fabs(log_det_hodlr/log_det)) < N * tolerance);
     delete T;
 
@@ -162,7 +163,7 @@ void testHODLR(int N, int M, double tolerance, HODLR_Matrix* K, std::string lowr
     delete T;
 }
 
-int main(int argc, char* argv[]) 
+int main(int /*argc*/, char* /*argv*/[]) 
 {
     // Size of the Matrix in consideration:
     int N            = 1000;

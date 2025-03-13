@@ -4,6 +4,15 @@
 #include "HODLR.hpp"
 #include "KDTree.hpp"
 
+#include <chrono>
+
+
+double hodlr_get_wtime()
+{
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  return milliseconds * 1e-3;
+}
+
 // Derived class of HODLR_Matrix which is ultimately
 // passed to the HODLR_Tree class:
 class Kernel : public HODLR_Matrix 
@@ -38,11 +47,11 @@ public:
         // Otherwise:
         else
         {   
-            dtype R, R2;
+            dtype R2;
             // Initializing:
-            R = R2 = 0;
+            R2 = 0;
 
-            for(int k = 0; k < dim; k++) 
+            for(unsigned int k = 0; k < dim; k++) 
             {
                 R2 += (x(i,k) - x(j,k)) * (x(i,k) - x(j,k));
             }
@@ -108,19 +117,19 @@ int main(int argc, char* argv[])
     // we trigger the fast symmetric factorization method to be used
     // In all other cases the fast factorization method is used
     bool is_pd = false;
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     // Creating a pointer to the HODLR Tree structure:
     HODLR* T = new HODLR(N, M, tolerance);
     T->assemble(K, "rookPivoting", is_sym, is_pd);
-    end = omp_get_wtime();
+    end = hodlr_get_wtime();
     hodlr_time = (end - start);
     std::cout << "Time for assembly in HODLR form    :" << hodlr_time << std::endl;
 
     // What we are doing here is explicitly generating 
     // the matrix from its entries
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     Mat B = K->getMatrix(0, 0, N, N);
-    end   = omp_get_wtime();
+    end   = hodlr_get_wtime();
     exact_time = (end - start);
     std::cout << "Time for direct matrix generation  :" << exact_time << std::endl;
     std::cout << "Magnitude of Speed-Up              :" << (exact_time / hodlr_time) << std::endl << std::endl;
@@ -137,15 +146,15 @@ int main(int argc, char* argv[])
     Mat y_fast, b_fast;
 
     std::cout << "========================= Matrix-Vector Multiplication =========================" << std::endl;
-    start  = omp_get_wtime();
+    start  = hodlr_get_wtime();
     b_fast = T->matmatProduct(x);
-    end    = omp_get_wtime();
+    end    = hodlr_get_wtime();
     hodlr_time = (end - start);
     std::cout << "Time for MatVec in HODLR form      :" << hodlr_time << std::endl;
 
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     Mat b_exact = B * x;
-    end   = omp_get_wtime();
+    end   = hodlr_get_wtime();
     exact_time = (end - start);
     std::cout << "Time for direct MatVec             :" << exact_time << std::endl;
     std::cout << "Magnitude of Speed-Up              :" << (exact_time / hodlr_time) << std::endl;
@@ -153,9 +162,9 @@ int main(int argc, char* argv[])
     std::cout << "Error in the solution is           :" << (b_fast-b_exact).norm() / (b_exact.norm()) << std::endl << std::endl;
 
     std::cout << "========================= Factorization =========================" << std::endl;
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     T->factorize();
-    end   = omp_get_wtime();
+    end   = hodlr_get_wtime();
     hodlr_time = (end - start);
     std::cout << "Time to factorize HODLR form       :" << hodlr_time << std::endl;
 
@@ -165,9 +174,9 @@ int main(int argc, char* argv[])
     // Factorizing using Cholesky:
     if(is_sym == true && is_pd == true)
     {
-        start = omp_get_wtime();
+        start = hodlr_get_wtime();
         llt.compute(B);
-        end = omp_get_wtime();
+        end = hodlr_get_wtime();
         exact_time = (end - start);
         std::cout << "Time for Cholesky Factorization    :" << exact_time << std::endl;
     }
@@ -175,9 +184,9 @@ int main(int argc, char* argv[])
     // Factorizing using LU:
     else
     {
-        start = omp_get_wtime();
+        start = hodlr_get_wtime();
         lu.compute(B);
-        end = omp_get_wtime();
+        end = hodlr_get_wtime();
         exact_time = (end - start);
         std::cout << "Time for LU Factorization          :" << exact_time << std::endl;
     }
@@ -186,9 +195,9 @@ int main(int argc, char* argv[])
 
     std::cout << "========================= Solving =========================" << std::endl;
     Mat x_fast;
-    start  = omp_get_wtime();
+    start  = hodlr_get_wtime();
     x_fast = T->solve(b_exact);
-    end    = omp_get_wtime();
+    end    = hodlr_get_wtime();
     hodlr_time = (end - start);
     std::cout << "Time to solve HODLR form           :" << hodlr_time << std::endl;
 
@@ -196,16 +205,16 @@ int main(int argc, char* argv[])
     Mat x_exact;
     if(is_sym == true && is_pd == true)
     {
-        start   = omp_get_wtime();
+        start   = hodlr_get_wtime();
         x_exact = llt.solve(b_exact);
-        end     = omp_get_wtime();
+        end     = hodlr_get_wtime();
     }
 
     else
     {
-        start   = omp_get_wtime();
+        start   = hodlr_get_wtime();
         x_exact = lu.solve(b_exact);
-        end     = omp_get_wtime();
+        end     = hodlr_get_wtime();
     }
 
     exact_time = (end - start);
@@ -219,9 +228,9 @@ int main(int argc, char* argv[])
 
     std::cout << "========================= Determinant Computation =========================" << std::endl;
     // Gets the log(determinant) of the matrix abstracted through Kernel:
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     dtype log_det_hodlr = T->logDeterminant();
-    end = omp_get_wtime();
+    end = hodlr_get_wtime();
     std::cout << "Time taken for HODLR form          :" << (end-start) << std::endl;
     std::cout << "Calculated Log Determinant(HODLR)  :" << log_det_hodlr << std::endl;
 
@@ -257,15 +266,15 @@ int main(int argc, char* argv[])
     {
         std::cout << "========================= Multiplication With Symmetric Factor =========================" << std::endl;
         // We set y = W^T x
-        start  = omp_get_wtime();
+        start  = hodlr_get_wtime();
         y_fast = T->symmetricFactorTransposeProduct(x);
-        end    = omp_get_wtime();
+        end    = hodlr_get_wtime();
         std::cout << "Time to calculate product of factor transpose with given vector:" << (end - start) << std::endl;
         
         // b = W y = W W^T x = B * x
-        start  = omp_get_wtime();
+        start  = hodlr_get_wtime();
         b_fast = T->symmetricFactorProduct(y_fast);
-        end    = omp_get_wtime();
+        end    = hodlr_get_wtime();
         std::cout << "Time to calculate product of factor with given vector          :" << (end - start) << std::endl;
 
         std::cout << "Error in the solution is                                       :" << (b_fast - b_exact).norm() / (b_exact.norm()) << std::endl << std::endl;

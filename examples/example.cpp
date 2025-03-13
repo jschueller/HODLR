@@ -55,7 +55,7 @@ public:
     };
 };
 
-int main(int argc, char *argv[])
+int main(int /*argc*/, char */*argv*/[])
 {
     unsigned int seed = time(NULL);
     std::cout << "Seed is: " << seed << std::endl;

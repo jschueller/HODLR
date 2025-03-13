@@ -66,7 +66,7 @@ public:
     }
 
     // Returns individual entries of the matrix:
-    virtual dtype getMatrixEntry(int j, int k) 
+    virtual dtype getMatrixEntry(int /*j*/, int /*k*/) 
     {
         // FROM EXPERIENCE: Incase the user makes a mistake in 
         // setting the derived class, this warns the user:
@@ -81,7 +81,7 @@ public:
     Mat getMatrix(int j, int k, int n_rows, int n_cols);
 
     // Destructor:
-    ~HODLR_Matrix() {};
+    virtual ~HODLR_Matrix() {};
 };
 
 #endif /*__HODLR_Matrix__*/

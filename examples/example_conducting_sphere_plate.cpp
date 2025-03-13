@@ -38,7 +38,7 @@ public:
     };
 };
 
-int main(int argc, char *argv[]) 
+int main(int /*argc*/, char * /*argv*/[]) 
 {
     // exact (analytical) result from Ref. [1]
     const double exact = -117.00871690447;

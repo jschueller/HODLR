@@ -1,5 +1,12 @@
 #include "HODLR_Matrix.hpp"
 #include "HODLR.hpp"
+#include <chrono>
+
+double hodlr_get_wtime()
+{
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  return milliseconds * 1e-3;
+}
 
 // Taking Matern Kernel for p = 2:
 // K(r) = σ^2 * (1 + sqrt(5) * r / ρ + 5/3 * (r / ρ)^2) * exp(-sqrt(5) * r / ρ)
@@ -80,9 +87,9 @@ int main(int argc, char* argv[])
     // Creating a pointer to the HODLR Tree structure:
     HODLR* T = new HODLR(N, M, tolerance);
 
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     T->assemble(K, "rookPivoting", is_sym, is_pd);
-    end = omp_get_wtime();
+    end = hodlr_get_wtime();
     std::cout << "Time for assembly in HODLR form:" << (end - start) << std::endl;
 
     // Random Matrix to multiply with
@@ -90,62 +97,63 @@ int main(int argc, char* argv[])
     // Stores the result after multiplication:
     Mat y_fast, b_fast;
     
-    start  = omp_get_wtime();
+    start  = hodlr_get_wtime();
     b_fast = T->matmatProduct(x);
-    end    = omp_get_wtime();
+    end    = hodlr_get_wtime();
     
     std::cout << "Time for matrix-vector product:" << (end - start) << std::endl << std::endl;
 
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     T->factorize();
-    end   = omp_get_wtime();
+    end   = hodlr_get_wtime();
     std::cout << "Time to factorize:" << (end-start) << std::endl;
 
     Mat x_fast;
-    start  = omp_get_wtime();
+    start  = hodlr_get_wtime();
     x_fast = T->solve(b_fast);
-    end    = omp_get_wtime();
+    end    = hodlr_get_wtime();
 
     std::cout << "Time to solve:" << (end-start) << std::endl;
 
     if(is_sym == true && is_pd == true)
     {
-        start  = omp_get_wtime();
+        start  = hodlr_get_wtime();
         y_fast = T->symmetricFactorTransposeProduct(x);
-        end    = omp_get_wtime();
+        end    = hodlr_get_wtime();
         std::cout << "Time to calculate product of factor transpose with given vector:" << (end - start) << std::endl;
         
-        start  = omp_get_wtime();
+        start  = hodlr_get_wtime();
         b_fast = T->symmetricFactorProduct(y_fast);
-        end    = omp_get_wtime();
+        end    = hodlr_get_wtime();
         std::cout << "Time to calculate product of factor with given vector:" << (end - start) << std::endl;        
     }
         
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     dtype log_det_hodlr = T->logDeterminant();
-    end = omp_get_wtime();
+    (void)log_det_hodlr;
+    end = hodlr_get_wtime();
     std::cout << "Time to calculate log determinant using HODLR:" << (end-start) << std::endl;
 
     // Direct method:
-    start = omp_get_wtime();
+    start = hodlr_get_wtime();
     Mat B = K->getMatrix(0, 0, N, N);
-    end   = omp_get_wtime();
+    end   = hodlr_get_wtime();
 
     if(is_sym == true && is_pd == true)
     {
-        start = omp_get_wtime();
+        start = hodlr_get_wtime();
         Eigen::LLT<Mat> llt;
         llt.compute(B);
-        end = omp_get_wtime();
+        end = hodlr_get_wtime();
         std::cout << "Time to calculate LLT Factorization:" << (end-start) << std::endl;
     }
 
     else
     {
-        start = omp_get_wtime();
+        start = hodlr_get_wtime();
         Eigen::PartialPivLU<Mat> lu;
         lu.compute(B);
-        end = omp_get_wtime();
+        end = hodlr_get_wtime();
         std::cout << "Time to calculate LU Factorization:" << (end-start) << std::endl;        
     }
 

@@ -1,33 +1,18 @@
-cmake_minimum_required (VERSION 3.0)
-project(HODLRlib_python)
-add_subdirectory(pybind11)
+# add_subdirectory(pybind11)
 
-# Change this accordingly to point to the Eigen root folder
-# By default, it will pick up the environment variable EIGEN_PATH
-set(EIGEN_PATH "$ENV{EIGEN_PATH}")
-set(HODLR_PATH "$ENV{HODLR_PATH}")
+find_package(pybind11 CONFIG REQUIRED)
 
-set(DTYPE_FLAG "-DUSE_DOUBLE")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DTYPE_FLAG} --std=c++11 -O3 -funroll-loops -ffast-math -ffinite-math-only")
 
-################ ADDING OF THE NECESSARY HEADER FOLDERS ####################
-# Adding folders which contain necessary header files:
-include_directories("${EIGEN_PATH}" 
-                    "${HODLR_PATH}/include"
-                   )
-
-################ MENTIONING C++ FILES TO LINK WITH HEADERS + FILE TO BUILD ####################
-set(HODLRlib_SRCS
-    ${HODLR_PATH}/src/HODLR_Matrix.cpp
-    ${HODLR_PATH}/src/KDTree.cpp
-    ${HODLR_PATH}/src/LowRank.cpp
-    ${HODLR_PATH}/src/HODLR_Node.cpp
-    ${HODLR_PATH}/src/HODLR.cpp
-    ${HODLR_PATH}/src/HODLR_NonSPD.cpp
-    ${HODLR_PATH}/src/HODLR_SPD.cpp
-   )
 
 pybind11_add_module(pyhodlrlib
                     wrapper/pyhodlrlib.cpp
-                    ${HODLRlib_SRCS}
                    )
+target_link_libraries(pyhodlrlib PRIVATE HODLR)
+
+if (WIN32)
+  set (INSTALL_PYTHONDIR Lib/site-packages CACHE STRING "site packages dir")
+else ()
+  set (INSTALL_PYTHONDIR ${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages CACHE STRING "site packages dir")
+endif ()
+
+install(TARGETS pyhodlrlib DESTINATION ${INSTALL_PYTHONDIR})

@@ -50,7 +50,7 @@ public:
 int main(int argc, char* argv[]) 
 {
     srand(time(NULL));
-    int N, M, dim;
+    int N;
     double tolerance;
 
     if(argc < 3)
